@@ -40,25 +40,10 @@ export const signup = async (req, res) => {
     newUser.role_id = [role._id];
 
     const result = await newUser.save();
-    const authorities = [`ROLE_${role}`];
-    const token = jwt.sign(
-        {
-          userId: newUser._id,
-          email: newUser.email,
-          verified: newUser.verified,
-          role_id: newUser.role_id
-        },
-        process.env.TOKEN_SECRET,
-        {
-          expiresIn: '8h',
-        }
-    );
     result.password = undefined;
 
-    res.status(201).json({
+    res.json({
       success: true,
-      token,
-      role: authorities,
       message: "Account created successfully",
       result,
     });
@@ -93,6 +78,7 @@ export const signin = async (req, res) => {
       {
         userId: existingUser._id,
         email: existingUser.email,
+        username: existingUser.username,
         verified: existingUser.verified,
         role_id: existingUser.role_id
       },
@@ -218,13 +204,31 @@ export const verifyCode = async (req, res) => {
       codeValue,
       process.env.HMAC_VERIFICATION_CODE_SECRET
     );
+    const token = jwt.sign(
+        {
+          userId: existingUser._id,
+          username: existingUser.username,
+          email: existingUser.email,
+          verified: existingUser.verified,
+          role_id: existingUser.role_id
+        },
+        process.env.TOKEN_SECRET,
+        {
+          expiresIn: '8h',
+        }
+    );
     if (hashedCodeValue === existingUser.verificationCode) {
       existingUser.verified = true;
       existingUser.verificationCode = undefined;
       existingUser.verificationCodeValidation = undefined;
       await existingUser.save();
-      return res.status(200).json({
+      return res.status(200).cookie("Authorization", "Bearer" + token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+        httpOnly: process.env.NODE_ENV === "production",
+        secure: process.env.NODE_ENV === "production",
+      }).json({
         success: true,
+        token,
         message: "Email is verified successfully",
       });
     }
