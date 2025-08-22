@@ -1,5 +1,6 @@
 import Course from "../models/courseModel.js";
 import Lesson from "../models/lessonModel.js";
+import Quiz from "../models/quizModel.js";
 
 export const createCourse = async (req, res) => {
     try {
@@ -28,7 +29,7 @@ export const getAllCourses = async (req, res) => {
   }
 };
 
-export const getCoursebyId = async (req, res) => {
+export const getCourseById = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id).populate("category_id");
 
@@ -38,10 +39,19 @@ export const getCoursebyId = async (req, res) => {
 
     const lessons = await Lesson.find({ course_id: course._id });
 
+    // Find quizzes for this course
+    const quizzes = await Quiz.find({ course_id: course._id });
+
+    // Convert to object and add quizzes array
+    const courseObj = course.toObject();
+    courseObj.quizzes = quizzes || [];
+
     res.status(200).json({
-      ...course.toObject(),
-      lessons
+      ...courseObj,
+      lessons,
+      quizzes,
     });
+    
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

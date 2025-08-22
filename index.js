@@ -7,6 +7,7 @@ import { router } from "./routers/authRouter.js";
 import {lessonRouter} from "./routers/lessonRouter.js";
 import { courseRouter } from "./routers/courseRouter.js";
 import { categoryRouter } from "./routers/categoryRouter.js";
+import { quizRouter } from "./routers/quizRouter.js";
 import http from 'http';
 import { WebSocketServer } from "ws";
 import { ideRouter } from "./routers/ideRouter.js";
@@ -31,6 +32,7 @@ app.use("/api/lessons", lessonRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/category", categoryRouter);
 app.use('/api/ide', ideRouter);
+app.use('/api/quiz', quizRouter);
 
 const server = http.createServer(app);
 
