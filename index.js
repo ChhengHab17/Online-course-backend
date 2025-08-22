@@ -11,6 +11,7 @@ import { quizRouter } from "./routers/quizRouter.js";
 import http from 'http';
 import { WebSocketServer } from "ws";
 import { ideRouter } from "./routers/ideRouter.js";
+import { userRouter } from "./routers/userRouter.js";
 
 const app = express();
 app.use(cors());
@@ -33,6 +34,7 @@ app.use("/api/course", courseRouter);
 app.use("/api/category", categoryRouter);
 app.use('/api/ide', ideRouter);
 app.use('/api/quiz', quizRouter);
+app.use("/api/user", userRouter);
 
 const server = http.createServer(app);
 
