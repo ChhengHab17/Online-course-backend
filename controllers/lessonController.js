@@ -4,8 +4,8 @@ import Lesson from "../models/lessonModel.js";
 export const createLesson = async (req, res) => {
     try {
         const { course_id, title, sub_title, content, image } = req.body;
-        if (!course_id || !title || !content || !image) {
-            return res.status(400).json({ message: "Course ID, title, content, and image are required" });
+        if (!course_id || !title || !content ) {
+            return res.status(400).json({ message: "Course ID, title, and content are required" });
         }
         const newLesson = new Lesson({ course_id, title, sub_title, content, image });
         await newLesson.save();
