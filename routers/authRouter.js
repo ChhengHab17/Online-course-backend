@@ -9,17 +9,19 @@ import {
   changePassword,
   sendForgotPasswordCode,
   verifyForgotPasswordCode,
+  resetPassword,
 } from "../controllers/authController.js";
 export const router = express.Router();
 
 router.post("/signup", signup);
 router.post("/signin", signin);
 router.post("/signout", identifier, signout);
-router.patch("/verification-code", identifier, sendVerificationCode);
-router.patch("/verify-code", identifier, verifyCode);
-router.patch("/change-password", identifier, changePassword);
+router.patch("/verification-code", sendVerificationCode);
+router.patch("/verify-code", verifyCode);
+router.patch("/change-password", changePassword);
 router.patch("/send-forgotPassword", sendForgotPasswordCode);
 router.patch("/verify-forgotPassword", verifyForgotPasswordCode);
+router.patch("/change-forgot-password", resetPassword);
 
 router.post("/admin", identifier, isAdmin, (req, res) => {
   console.log("Hello from Admin Page");

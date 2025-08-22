@@ -10,10 +10,10 @@ export const runCode = (req, res) => {
     php: { image: "code-runner-php", file: "code.php", cmd: ["php", "code.php"] },
     python: { image: "code-runner-python", file: "code.py", cmd: ["python", "code.py"] },
     node: { image: "code-runner-node", file: "code.js", cmd: ["node", "code.js"] },
-    c: { 
-      image: "code-runner-c", 
-      file: "code.c", 
-      cmd: ["sh", "-c", "gcc code.c -o code && expect -c 'spawn ./code; interact'"]
+    java: {
+      image: "code-runner-java",
+      file: "Main.java",
+      cmd: ["sh", "-c", "javac Main.java && java Main"]
     },
     cpp: { 
       image: "gcc:latest", 
@@ -36,7 +36,7 @@ export const runCode = (req, res) => {
   const dockerArgs = [
     "run",
     "--rm",
-    "-i",  // interactive only, no TTY
+    "-i",
     "-v", `${tempDir}:/app`,
     "-w", "/app",
     dockerImages[language].image,
@@ -69,9 +69,9 @@ export const runCode = (req, res) => {
 
   // Handle stdout
   proc.stdout.on("data", (chunk) => {
-    if (ws) ws.send(JSON.stringify({ 
-      type: "stdout", 
-      data: chunk.toString() 
+    if (ws) ws.send(JSON.stringify({
+      type: "stdout",
+      data: chunk.toString()
     }));
   });
 

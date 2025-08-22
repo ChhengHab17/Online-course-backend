@@ -5,6 +5,7 @@ import {
   acceptCodeSchema,
   changePasswordSchema,
   acceptforgotPasswordCodeSchema,
+  forgotPasswordSchema
 } from "../middlewares/validator.js";
 import User from "../models/userModel.js"; // Assuming you have a User model defined
 import Role from "../models/roleModels.js";
@@ -39,9 +40,25 @@ export const signup = async (req, res) => {
     newUser.role_id = [role._id];
 
     const result = await newUser.save();
+    const authorities = [`ROLE_${role}`];
+    const token = jwt.sign(
+        {
+          userId: newUser._id,
+          email: newUser.email,
+          verified: newUser.verified,
+          role_id: newUser.role_id
+        },
+        process.env.TOKEN_SECRET,
+        {
+          expiresIn: '8h',
+        }
+    );
     result.password = undefined;
+
     res.status(201).json({
       success: true,
+      token,
+      role: authorities,
       message: "Account created successfully",
       result,
     });
@@ -268,6 +285,7 @@ export const changePassword = async (req, res) => {
 };
 
 export const sendForgotPasswordCode = async (req, res) => {
+  console.log("Incoming request body:", req.body);
   const { email } = req.body;
   try {
     const existingUser = await User.findOne({ email });
@@ -310,12 +328,11 @@ export const sendForgotPasswordCode = async (req, res) => {
 };
 
 export const verifyForgotPasswordCode = async (req, res) => {
-  const { email, providedCode, newPassword } = req.body;
+  const { email, providedCode } = req.body;
   try {
     const { error, value } = acceptforgotPasswordCodeSchema.validate({
       email,
       providedCode,
-      newPassword,
     });
     if (error) {
       return res
@@ -354,14 +371,12 @@ export const verifyForgotPasswordCode = async (req, res) => {
       process.env.HMAC_VERIFICATION_CODE_SECRET
     );
     if (hashedCodeValue === existingUser.forgotPasswordCode) {
-      const hashedPassword = await doHash(newPassword, 12);
-      existingUser.password = hashedPassword;
       existingUser.forgotPasswordCode = undefined;
       existingUser.forgotPasswordCodeValidation = undefined;
       await existingUser.save();
       return res.status(200).json({
         success: true,
-        message: "Code Changed successfully",
+        message: "Code verify successfully",
       });
     }
     return res.status(400).json({
@@ -372,3 +387,38 @@ export const verifyForgotPasswordCode = async (req, res) => {
     console.log(error);
   }
 };
+export const resetPassword = async (req, res) => {
+  const { email , password } = req.body;
+
+  try {
+    const { error, value } = forgotPasswordSchema.validate({
+      email,
+      password,
+    });
+    if (error) {
+      return res
+          .status(401)
+          .json({ success: false, message: error.details[0].message });
+    }
+    const existingUser = await User.findOne({ email }).select(
+        "+password"
+    );
+    if (!existingUser) {
+      return res.status(401).json({
+        success: false,
+        message: "User is not exist",
+      });
+    }
+
+    const hashedPassword = await doHash(password, 12);
+    existingUser.password = hashedPassword;
+    await existingUser.save();
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.log(error);
+  }
+
+}

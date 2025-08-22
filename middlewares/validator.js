@@ -16,11 +16,11 @@ export const signupSchema = joi.object({
     .required()
     .pattern(
       new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+        ""
       )
     )
     .message(
-      "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+      "Password must be at least 8 characters long."
     ),
 });
 
@@ -38,11 +38,11 @@ export const signinSchema = joi.object({
     .required()
     .pattern(
       new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+        ""
       )
     )
     .message(
-      "Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character."
+      "Password must be at least 8 characters long"
     ),
 });
 
@@ -64,7 +64,7 @@ export const changePasswordSchema = joi.object({
     .required()
     .pattern(
       new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+        ""
       )
     ),
   oldPassword: joi
@@ -72,7 +72,7 @@ export const changePasswordSchema = joi.object({
     .required()
     .pattern(
       new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
+        ""
       )
     ),
 });
@@ -87,12 +87,21 @@ export const acceptforgotPasswordCodeSchema = joi.object({
       tlds: { allow: ["com", "net"] },
     }),
   providedCode: joi.number().required(),
-  newPassword: joi
-    .string()
-    .required()
-    .pattern(
-      new RegExp(
-        "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
-      )
-    ),
 });
+
+export const forgotPasswordSchema = joi.object({
+  email: joi
+    .string()
+    .min(6)
+    .max(60)
+    .required()
+    .email({}),
+    password: joi
+    .string()
+        .required()
+        .pattern(
+            new RegExp(
+                ""
+            )
+        )
+})
