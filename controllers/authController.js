@@ -68,7 +68,9 @@ export const signin = async (req, res) => {
         .status(401)
         .json({ success: false, message: "Email is not registered yet!" });
     }
-    const result = doHashValidation(password, existingUser.password);
+    const result = await doHashValidation(password, existingUser.password);
+    console.log(password, existingUser.password);
+    console.log(result);
     if (!result) {
       return res
         .status(401)
