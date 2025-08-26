@@ -3,7 +3,10 @@ import {
   createQuiz,
   updateQuiz,
   deleteQuiz,
-  getQuizById
+  getQuizById,
+  getQuizByCourseId,
+  deleteQuizQuestion, 
+  deleteQuizOption
 } from "../controllers/quizController.js";
 
 export const quizRouter = express.Router();
@@ -19,5 +22,10 @@ quizRouter.delete("/:id", deleteQuiz);
 
 // Get quiz by ID
 quizRouter.get("/:id", getQuizById);
+
+quizRouter.get("/course/:courseId", getQuizByCourseId);
+
+quizRouter.delete("/:id/question/:questionId", deleteQuizQuestion);
+quizRouter.delete("/:id/question/:questionId/option/:optionId", deleteQuizOption);
 
 export default quizRouter;
