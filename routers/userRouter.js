@@ -1,7 +1,7 @@
 import express from "express";
 import {
-    blockUser,
-    unblockUser,
+    // blockUser,
+    // unblockUser,
     deleteUser,
     getAllUsers,
     changeUserStatus,
@@ -10,11 +10,11 @@ import {
 export const userRouter = express.Router();
 
 userRouter.get("/", getAllUsers);
-userRouter.patch("/block/:id", blockUser);  
-userRouter.patch("/unblock/:id", unblockUser);
+// userRouter.patch("/block/:id", blockUser);  
+// userRouter.patch("/unblock/:id", unblockUser);
 userRouter.delete("/:id", deleteUser);
-userRouter.patch("/", changeUserStatus);
-userRouter.patch("/change-password", changeUserPassword);
+userRouter.patch("/:id", changeUserStatus);
+userRouter.patch("/change-password/:id", changeUserPassword);
 
 
 export default userRouter;
