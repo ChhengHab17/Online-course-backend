@@ -68,6 +68,8 @@ export const signin = async (req, res) => {
         .status(401)
         .json({ success: false, message: "Email is not registered yet!" });
     }
+    // Check if verified
+    
     const result = await doHashValidation(password, existingUser.password);
     console.log(password, existingUser.password);
     console.log(result);
@@ -75,6 +77,13 @@ export const signin = async (req, res) => {
       return res
         .status(401)
         .json({ success: false, message: "Password is incorrect!" });
+    }
+    if (!existingUser.verified) {
+      return res.status(200).json({
+        success: false,
+        message: "You are not verified yet!",
+        email: existingUser.email // so frontend knows which email to prefill
+      });
     }
     const token = jwt.sign(
       {
