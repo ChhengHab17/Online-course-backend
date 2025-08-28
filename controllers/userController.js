@@ -26,25 +26,25 @@ export const getAllUsers = async (req, res) => {
 // Change User Password
 export const changeUserPassword = async (req, res) => {
   try {
-    const { id } = req.params;       // get id from URL
-    const { newPassword } = req.body; // get new password from body
+    const { id } = req.params;
+    const { newPassword } = req.body;
 
     if (!newPassword) {
       return res.status(400).json({ message: "New password is required" });
     }
 
-    console.log("Password change request:", { id, newPassword });
-
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found!" });
-    }
-
     const salt = await genSalt(10);
     const hashedPassword = await doHash(newPassword, salt);
 
-    user.password = hashedPassword;
-    await user.save();
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { password: hashedPassword },
+      { new: true } // optional: returns updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found!" });
+    }
 
     return res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
