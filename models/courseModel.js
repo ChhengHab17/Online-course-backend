@@ -16,6 +16,16 @@ const courseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
     required: true,
+  },
+  course_price: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  },
+  language: {
+    type: String,
+    required: true,
   }
 }, { timestamps: true });
 

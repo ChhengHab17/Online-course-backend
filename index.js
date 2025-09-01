@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
+import { spawn } from "child_process";
 import { router } from "./routers/authRouter.js";
 import {lessonRouter} from "./routers/lessonRouter.js";
 import { courseRouter } from "./routers/courseRouter.js";
@@ -12,7 +13,25 @@ import http from 'http';
 import { WebSocketServer } from "ws";
 import { ideRouter } from "./routers/ideRouter.js";
 import { userRouter } from "./routers/userRouter.js";
-// import { paymentRouter } from "./routers/paymentRoutes.js";
+import { paymentRouter } from "./routers/paymentRoutes.js";
+import { enrollmentRouter } from "./routers/enrollmentRouter.js";
+
+const pythonProcess = spawn("./python-service/env/Scripts/python", ["python-service/khqr.py",],{
+  env: {...process.env}
+});
+
+pythonProcess.stdout.on("data", (data) => {
+  console.log(`[PYTHON] ${data.toString()}`);
+});
+
+pythonProcess.stderr.on("data", (data) => {
+  console.error(`[PYTHON LOG] ${data.toString()}`);
+});
+
+pythonProcess.on("close", (code) => {
+  console.log(`[PYTHON] Process exited with code ${code}`);
+});
+
 
 const app = express();
 app.use(cors());
@@ -36,7 +55,8 @@ app.use("/api/category", categoryRouter);
 app.use('/api/ide', ideRouter);
 app.use('/api/quiz', quizRouter);
 app.use("/api/user", userRouter);
-// app.use("/api/payment", paymentRouter);
+app.use("/api/payment", paymentRouter);
+app.use("/api/enrollment", enrollmentRouter);
 
 const server = http.createServer(app);
 

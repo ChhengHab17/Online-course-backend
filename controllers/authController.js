@@ -85,6 +85,13 @@ export const signin = async (req, res) => {
         email: existingUser.email // so frontend knows which email to prefill
       });
     }
+    if(existingUser.status){
+      return res.status(200).json({
+        success: false,
+        message: "Your account is suspended!",
+        email: existingUser.email // so frontend knows which email to prefill
+      });
+    }
     const token = jwt.sign(
       {
         userId: existingUser._id,
