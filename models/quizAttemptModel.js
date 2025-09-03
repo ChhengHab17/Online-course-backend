@@ -48,16 +48,31 @@ const quizAttemptSchema = new mongoose.Schema(
       required: true,
       default: 1,
     },
+    highest_score: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    highest_percentage: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100,
+    },
+    highest_passed: {
+      type: Boolean,
+      required: true,
+    },
   },
   { 
-    timestamps: true,
-    // Create compound index to enforce unique constraint per user per quiz for latest attempt
-    index: { user_id: 1, quiz_id: 1, attempt_number: 1 }
+    timestamps: true
   }
 );
 
-// Index for faster queries
-quizAttemptSchema.index({ user_id: 1, course_id: 1 });
+// Create unique compound index to ensure only one attempt per user per course
+quizAttemptSchema.index({ user_id: 1, course_id: 1 }, { unique: true });
+
+// Additional indexes for faster queries
 quizAttemptSchema.index({ quiz_id: 1 });
 
 const QuizAttempt = mongoose.model("QuizAttempt", quizAttemptSchema);

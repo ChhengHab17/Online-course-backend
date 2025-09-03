@@ -204,34 +204,54 @@ export const submitQuiz = async (req, res) => {
     const percentage = Math.round((score / quiz.questions.length) * 100);
     const passed = percentage >= 70; // 70% passing grade
 
-    // Get the current attempt number for this user and quiz
-    const lastAttempt = await QuizAttempt
-      .findOne({ user_id, quiz_id: quiz._id })
-      .sort({ attempt_number: -1 });
-    
-    const attemptNumber = lastAttempt ? lastAttempt.attempt_number + 1 : 1;
-
-    // Save quiz attempt
-    const quizAttempt = new QuizAttempt({
-      user_id,
-      quiz_id: quiz._id,
-      course_id: courseId,
-      score,
-      total_questions: quiz.questions.length,
-      percentage,
-      passed,
-      answers: processedAnswers,
-      attempt_number: attemptNumber
+    // Check if user already has an attempt for this course
+    let quizAttempt = await QuizAttempt.findOne({ 
+      user_id, 
+      course_id: courseId 
     });
 
-    await quizAttempt.save();
+    if (quizAttempt) {
+      // Update existing attempt and track highest score
+      quizAttempt.score = score;
+      quizAttempt.total_questions = quiz.questions.length;
+      quizAttempt.percentage = percentage;
+      quizAttempt.passed = passed;
+      quizAttempt.answers = processedAnswers;
+      quizAttempt.attempt_number = quizAttempt.attempt_number + 1;
+      
+      // Update highest score if current score is better
+      if (percentage > quizAttempt.highest_percentage) {
+        quizAttempt.highest_score = score;
+        quizAttempt.highest_percentage = percentage;
+        quizAttempt.highest_passed = passed;
+      }
+      
+      await quizAttempt.save();
+    } else {
+      // Create new attempt (first time)
+      quizAttempt = new QuizAttempt({
+        user_id,
+        quiz_id: quiz._id,
+        course_id: courseId,
+        score,
+        total_questions: quiz.questions.length,
+        percentage,
+        passed,
+        answers: processedAnswers,
+        attempt_number: 1,
+        highest_score: score,
+        highest_percentage: percentage,
+        highest_passed: passed
+      });
+      await quizAttempt.save();
+    }
 
     res.json({ 
       total: quiz.questions.length, 
       score, 
       percentage,
       passed,
-      attempt_number: attemptNumber,
+      attempt_number: quizAttempt.attempt_number,
       quiz_attempt_id: quizAttempt._id
     });
   } catch (err) {
@@ -239,37 +259,39 @@ export const submitQuiz = async (req, res) => {
   }
 };
 
-// Get user's quiz attempts for a course
+// Get user's quiz attempts for a course (now returns single attempt per course)
 export const getUserQuizAttempts = async (req, res) => {
   try {
     const { courseId, userId } = req.params;
 
-    const attempts = await QuizAttempt
-      .find({ user_id: userId, course_id: courseId })
-      .populate('quiz_id', 'title description')
-      .sort({ createdAt: -1 });
+    const attempt = await QuizAttempt
+      .findOne({ user_id: userId, course_id: courseId })
+      .populate('quiz_id', 'title description');
 
-    res.json(attempts);
+    if (!attempt) {
+      return res.json([]);
+    }
+
+    res.json([attempt]); // Return as array for compatibility
   } catch (err) {
     res.status(500).json({ message: "Error fetching quiz attempts", error: err.message });
   }
 };
 
-// Get user's latest quiz attempt for a course
+// Get user's latest quiz attempt for a course (now same as single attempt)
 export const getUserLatestQuizAttempt = async (req, res) => {
   try {
     const { courseId, userId } = req.params;
 
-    const latestAttempt = await QuizAttempt
+    const attempt = await QuizAttempt
       .findOne({ user_id: userId, course_id: courseId })
-      .populate('quiz_id', 'title description')
-      .sort({ createdAt: -1 });
+      .populate('quiz_id', 'title description');
 
-    if (!latestAttempt) {
+    if (!attempt) {
       return res.status(404).json({ message: "No quiz attempts found" });
     }
 
-    res.json(latestAttempt);
+    res.json(attempt);
   } catch (err) {
     res.status(500).json({ message: "Error fetching latest quiz attempt", error: err.message });
   }
@@ -285,20 +307,23 @@ export const checkQuizCompletion = async (req, res) => {
       return res.json({ hasQuiz: false, completed: false });
     }
 
-    // Get the best attempt (highest percentage) instead of latest
-    const bestAttempt = await QuizAttempt
-      .findOne({ user_id: userId, course_id: courseId })
-      .sort({ percentage: -1, createdAt: -1 }); // Sort by percentage descending, then by date
+    // Get the single attempt for this user and course
+    const attempt = await QuizAttempt
+      .findOne({ user_id: userId, course_id: courseId });
 
     res.json({
       hasQuiz: true,
-      completed: !!bestAttempt,
-      passed: bestAttempt?.passed || false,
-      score: bestAttempt?.score || 0,
-      percentage: bestAttempt?.percentage || 0,
+      completed: !!attempt,
+      passed: attempt?.highest_passed || false,
+      score: attempt?.highest_score || 0,
+      percentage: attempt?.highest_percentage || 0,
       total_questions: quiz.questions.length,
-      attempt_number: bestAttempt?.attempt_number || 0,
-      last_attempt_date: bestAttempt?.createdAt || null
+      attempt_number: attempt?.attempt_number || 0,
+      last_attempt_date: attempt?.updatedAt || null,
+      // Also include current/latest attempt data
+      latest_score: attempt?.score || 0,
+      latest_percentage: attempt?.percentage || 0,
+      latest_passed: attempt?.passed || false
     });
   } catch (err) {
     res.status(500).json({ message: "Error checking quiz completion", error: err.message });
