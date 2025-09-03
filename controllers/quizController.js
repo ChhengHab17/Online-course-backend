@@ -1,4 +1,5 @@
 import Quiz from "../models/quizModel.js";
+import QuizAttempt from "../models/quizAttemptModel.js";
 
 // CREATE quiz with questions and options
 export const createQuiz = async (req, res) => {
@@ -166,12 +167,17 @@ export const getQuizByCourseId = async (req, res) => {
 export const submitQuiz = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { answers } = req.body;
+    const { answers, user_id } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
 
     const quiz = await Quiz.findOne({ course_id: courseId });
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
     let score = 0;
+    const processedAnswers = [];
 
     quiz.questions.forEach((q, qi) => {
       const userAnswer = answers.find(a => a.questionIndex === qi);
@@ -186,10 +192,140 @@ export const submitQuiz = async (req, res) => {
         correctIndexes.every(idx => userAnswer.selectedOptions.includes(idx));
 
       if (isCorrect) score++;
+
+      processedAnswers.push({
+        question_index: qi,
+        selected_options: userAnswer.selectedOptions,
+        correct_options: correctIndexes,
+        is_correct: isCorrect
+      });
     });
 
-    res.json({ total: quiz.questions.length, score });
+    const percentage = Math.round((score / quiz.questions.length) * 100);
+    const passed = percentage >= 70; // 70% passing grade
+
+    // Check if user already has an attempt for this course
+    let quizAttempt = await QuizAttempt.findOne({ 
+      user_id, 
+      course_id: courseId 
+    });
+
+    if (quizAttempt) {
+      // Update existing attempt and track highest score
+      quizAttempt.score = score;
+      quizAttempt.total_questions = quiz.questions.length;
+      quizAttempt.percentage = percentage;
+      quizAttempt.passed = passed;
+      quizAttempt.answers = processedAnswers;
+      quizAttempt.attempt_number = quizAttempt.attempt_number + 1;
+      
+      // Update highest score if current score is better
+      if (percentage > quizAttempt.highest_percentage) {
+        quizAttempt.highest_score = score;
+        quizAttempt.highest_percentage = percentage;
+        quizAttempt.highest_passed = passed;
+      }
+      
+      await quizAttempt.save();
+    } else {
+      // Create new attempt (first time)
+      quizAttempt = new QuizAttempt({
+        user_id,
+        quiz_id: quiz._id,
+        course_id: courseId,
+        score,
+        total_questions: quiz.questions.length,
+        percentage,
+        passed,
+        answers: processedAnswers,
+        attempt_number: 1,
+        highest_score: score,
+        highest_percentage: percentage,
+        highest_passed: passed
+      });
+      await quizAttempt.save();
+    }
+
+    res.json({ 
+      total: quiz.questions.length, 
+      score, 
+      percentage,
+      passed,
+      attempt_number: quizAttempt.attempt_number,
+      quiz_attempt_id: quizAttempt._id
+    });
   } catch (err) {
     res.status(500).json({ message: "Error submitting quiz", error: err.message });
+  }
+};
+
+// Get user's quiz attempts for a course (now returns single attempt per course)
+export const getUserQuizAttempts = async (req, res) => {
+  try {
+    const { courseId, userId } = req.params;
+
+    const attempt = await QuizAttempt
+      .findOne({ user_id: userId, course_id: courseId })
+      .populate('quiz_id', 'title description');
+
+    if (!attempt) {
+      return res.json([]);
+    }
+
+    res.json([attempt]); // Return as array for compatibility
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching quiz attempts", error: err.message });
+  }
+};
+
+// Get user's latest quiz attempt for a course (now same as single attempt)
+export const getUserLatestQuizAttempt = async (req, res) => {
+  try {
+    const { courseId, userId } = req.params;
+
+    const attempt = await QuizAttempt
+      .findOne({ user_id: userId, course_id: courseId })
+      .populate('quiz_id', 'title description');
+
+    if (!attempt) {
+      return res.status(404).json({ message: "No quiz attempts found" });
+    }
+
+    res.json(attempt);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching latest quiz attempt", error: err.message });
+  }
+};
+
+// Check if user has completed quiz for a course
+export const checkQuizCompletion = async (req, res) => {
+  try {
+    const { courseId, userId } = req.params;
+
+    const quiz = await Quiz.findOne({ course_id: courseId });
+    if (!quiz) {
+      return res.json({ hasQuiz: false, completed: false });
+    }
+
+    // Get the single attempt for this user and course
+    const attempt = await QuizAttempt
+      .findOne({ user_id: userId, course_id: courseId });
+
+    res.json({
+      hasQuiz: true,
+      completed: !!attempt,
+      passed: attempt?.highest_passed || false,
+      score: attempt?.highest_score || 0,
+      percentage: attempt?.highest_percentage || 0,
+      total_questions: quiz.questions.length,
+      attempt_number: attempt?.attempt_number || 0,
+      last_attempt_date: attempt?.updatedAt || null,
+      // Also include current/latest attempt data
+      latest_score: attempt?.score || 0,
+      latest_percentage: attempt?.percentage || 0,
+      latest_passed: attempt?.passed || false
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Error checking quiz completion", error: err.message });
   }
 };

@@ -8,7 +8,11 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
+<<<<<<< HEAD
 set VIRTUAL_ENV=C:\Programming CADT\Short-Course_project\Online-course-backend\python-service\env
+=======
+set VIRTUAL_ENV=C:\E-learning_platform_mentor\v1\Online-course-backend\python-service\env
+>>>>>>> 93dc97fd7a5f998a3d58f9b0050b829ff87be5c4
 
 if not defined PROMPT set PROMPT=$P$G
 
