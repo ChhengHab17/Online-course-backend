@@ -26,6 +26,11 @@ const courseSchema = new mongoose.Schema({
   language: {
     type: String,
     required: true,
+  },
+  isFree: {
+    type: Boolean,
+    required: true,
+    default: true,
   }
 }, { timestamps: true });
 
