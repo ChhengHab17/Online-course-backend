@@ -6,22 +6,27 @@ import { genSalt } from "bcryptjs";
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
-    .populate("role_id", "role_name")
-    .select("-password");
+      .populate("role_id", "role_name")
+      .select("-password"); // exclude password
 
+    // Map users to include the correct username
     const formattedUsers = users.map(user => ({
       id: user._id,
-      name: user.email,
+      username: user.username || user.email, // <-- use user.username here
       email: user.email,
-      role: user.role_id ?.role_name || "User",
+      role: user.role_id?.role_name || "User",
       status: user.status,
       createdAt: user.createdAt,
-    }))
+    }));
+
+    console.log(formattedUsers); // check backend output
     return res.status(200).json({ users: formattedUsers });
-  }catch (error) {
+  } catch (error) {
     res.status(500).json({ message: "Error fetching users", error: error.message });
   }
 }
+
+
 
 // Change User Password
 export const changeUserPassword = async (req, res) => {
@@ -133,3 +138,34 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Error deleting user", error: error.message });
   }
 };
+
+
+export const changeUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role_id } = req.body;
+    console.log("Change role request:", { id, role_id }); // <--- log it
+
+    if (!role_id) {
+      return res.status(400).json({ message: "role Id is required" })
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { role_id },
+      { new: true }
+    ).populate("role_id", "role_name");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "user not found" })
+    } 
+
+    return res.status(200).json({
+      message: "User role changed successfully",
+      user: updatedUser
+    })
+  } catch (error) {
+    console.error("Error in changeUserRole:", error);
+    res.status(500).json({ message: "Error changing user role", error: error.message });
+  }
+}
