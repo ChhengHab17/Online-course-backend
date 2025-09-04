@@ -5,7 +5,8 @@ import {
     deleteUser,
     getAllUsers,
     changeUserStatus,
-    changeUserPassword
+    changeUserPassword,
+    changeUserRole
 } from "../controllers/userController.js";
 export const userRouter = express.Router();
 
@@ -15,6 +16,7 @@ userRouter.get("/", getAllUsers);
 userRouter.delete("/:id", deleteUser);
 userRouter.patch("/:id", changeUserStatus);
 userRouter.patch("/change-password/:id", changeUserPassword);
+userRouter.patch("/change-role/:id", changeUserRole);
 
 
 export default userRouter;

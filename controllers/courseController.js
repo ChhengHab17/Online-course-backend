@@ -1,6 +1,7 @@
 import Course from "../models/courseModel.js";
 import Lesson from "../models/lessonModel.js";
 import Quiz from "../models/quizModel.js";
+import Enrollment from "../models/enrollmentModel.js";
 
 export const createCourse = async (req, res) => {
     try {
@@ -58,13 +59,33 @@ export const getCourseById = async (req, res) => {
 };
 export const updateCourse = async (req, res) => {
     try{
-        const updateCourse = await Course.findByIdAndUpdate(
-            req.params.id, 
-            req.body, 
-            { new: true, runValidators: true }
+      const { id } = req.params;
+      const updates = req.body;
+      const oldCourse = await Course.findById(id);
+      if (!oldCourse) return res.status(404).json({ error: "Course not found" });
+      const updateCourse = await Course.findByIdAndUpdate(
+          id,
+          updates,
+          { new: true, runValidators: true }
         );
         if (!updateCourse){
             return res.status(404).json({ message: "Course not found" });
+        }
+         if (oldCourse.isFree && !updateCourse.isFree) {
+          // Free → Paid: mark unpaid enrollments as pending
+          await Enrollment.updateMany(
+            {
+              course_id: updateCourse._id,
+              payment_status: { $in: ["paid", "pending"] }
+            },
+            { $set: { payment_status: "pending" } }
+          );
+        } else if (!oldCourse.isFree && updateCourse.isFree) {
+          // Paid → Free: mark all enrollments as paid
+          await Enrollment.updateMany(
+            { course_id: updateCourse._id },
+            { $set: { payment_status: "paid" } }
+          );
         }
         res.status(200).json(updateCourse);
     }catch (error) {

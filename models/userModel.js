@@ -49,11 +49,12 @@ const userSchema = new mongoose.Schema(
     status: {
       type: Boolean,
       default: false,
-    }
+    },
+    lastLogin: { type: Date, default: null }
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("User", userSchema);

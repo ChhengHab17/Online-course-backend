@@ -62,7 +62,7 @@ export const signin = async (req, res) => {
         .json({ success: false, message: error.details[0].message });
     }
 
-    const existingUser = await User.findOne({ email }).select("+password").populate( "role_id", "-__v");
+    const existingUser = await User.findOne({ email }).select("+password +lastLogin").populate( "role_id", "-__v");
     if (!existingUser) {
       return res
         .status(401)
@@ -92,6 +92,8 @@ export const signin = async (req, res) => {
         email: existingUser.email // so frontend knows which email to prefill
       });
     }
+    existingUser.lastLogin = new Date();
+    await existingUser.save();
     const token = jwt.sign(
       {
         userId: existingUser._id,

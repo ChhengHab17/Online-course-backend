@@ -16,6 +16,7 @@ import { userRouter } from "./routers/userRouter.js";
 import { paymentRouter } from "./routers/paymentRoutes.js";
 import { enrollmentRouter } from "./routers/enrollmentRouter.js";
 import { videoRouter } from "./routers/videoRouter.js";
+import dashboardRouter from "./routers/dashboardRouter.js";
 
 const pythonProcess = spawn("./python-service/env/Scripts/python", ["python-service/khqr.py",],{
   env: {...process.env}
@@ -59,6 +60,7 @@ app.use("/api/user", userRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/enrollment", enrollmentRouter);
 app.use("/api/video", videoRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 const server = http.createServer(app);
 
