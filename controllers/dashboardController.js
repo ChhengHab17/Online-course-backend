@@ -39,8 +39,11 @@ export const getDashboardStats = async (req, res) => {
     const newCoursesThisWeek = await Course.countDocuments({ createdAt: { $gte: lastWeek } });
 
     // === ENROLLMENTS ===
-    const totalEnrollments = await Enrollment.countDocuments();
-    const enrollmentsLastMonth = await Enrollment.countDocuments({ createdAt: { $lt: new Date(), $gte: startOfLastMonth } });
+    const totalEnrollments = await Enrollment.countDocuments({ payment_status: "paid" });
+    const enrollmentsLastMonth = await Enrollment.countDocuments({ 
+      payment_status: "paid",
+      createdAt: { $lt: new Date(), $gte: startOfLastMonth } 
+    });
 
     // === ACTIVE USERS TODAY ===
     const today = new Date();
@@ -51,7 +54,10 @@ export const getDashboardStats = async (req, res) => {
     const newSignups = await User.countDocuments({ createdAt: { $gte: lastWeek } });
 
     // === COMPLETION RATE ===
-    const totalCompletedEnrollments = await Enrollment.countDocuments({ progress_status: 100 });
+    const totalCompletedEnrollments = await Enrollment.countDocuments({ 
+      payment_status: "paid",
+      progress_status: 100 
+    });
     const completionRate =
       totalEnrollments === 0
         ? 0
@@ -62,33 +68,36 @@ export const getDashboardStats = async (req, res) => {
     const monthlyStats = [];
 
     for (let i = 5; i >= 0; i--) {
-  const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
-  const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
 
-  console.log("Checking month:", start, "to", end);
+      const enrollments = await Enrollment.countDocuments({
+        payment_status: "paid",
+        enrolled_at: { $gte: start, $lt: end },
+      });
+      const users = await User.countDocuments({
+        createdAt: { $gte: start, $lt: end },
+      });
 
-  const enrollments = await Enrollment.countDocuments({
-    enrolled_at: { $gte: start, $lt: end },
-  });
-  const users = await User.countDocuments({
-    createdAt: { $gte: start, $lt: end },
-  });
+      const monthName = start.toLocaleString("default", { month: "short" });
+      monthlyStats.push({ month: monthName, enrollments, users });
+    }
 
-  const monthName = start.toLocaleString("default", { month: "short" });
-  monthlyStats.push({ month: monthName, enrollments, users });
-}
     // === COURSE DISTRIBUTION FOR PIE CHART ===
     const courses = await Course.find({});
-const courseDistribution = await Promise.all(
-  courses.map(async (course, index) => {
-    const enrollmentsCount = await Enrollment.countDocuments({ course_id: course._id });
-    return {
-      name: course.course_title, // display the actual course title
-      value: enrollmentsCount,   // number of enrollments
-      color: ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444", "#6B7280"][index % 6],
-    };
-  })
-);  
+    const courseDistribution = await Promise.all(
+      courses.map(async (course, index) => {
+        const enrollmentsCount = await Enrollment.countDocuments({ 
+          course_id: course._id,
+          payment_status: "paid" 
+        });
+        return {
+          name: course.course_title, // display the actual course title
+          value: enrollmentsCount,   // number of enrollments
+          color: ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444", "#6B7280"][index % 6],
+        };
+      })
+    );  
 
     res.json({
       totalUsers,
@@ -108,3 +117,4 @@ const courseDistribution = await Promise.all(
     res.status(500).json({ message: "Server error" });
   }
 };
+

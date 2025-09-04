@@ -108,3 +108,12 @@ export const markEnrollPaid = async ( req, res) => {
     res.status(500).json({ error: err.message });
   }
 }
+//get all of paid enrollments
+export const getPaidEnrollments = async (req, res) => {
+    try {
+        const enrollments = await Enrollment.find({ payment_status: "paid" });
+        res.json(enrollments);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
