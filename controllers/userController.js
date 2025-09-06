@@ -26,6 +26,33 @@ export const getAllUsers = async (req, res) => {
   }
 }
 
+// Get user by ID
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id)
+      .populate("role_id", "role_name")
+      .select("-password"); // exclude password
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const formattedUser = {
+      id: user._id,
+      username: user.username || user.email,
+      email: user.email,
+      role: user.role_id?.role_name || "User",
+      status: user.status,
+      createdAt: user.createdAt,
+    };
+
+    return res.status(200).json({ user: formattedUser });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching user", error: error.message });
+  }
+}
+
 
 
 // Change User Password

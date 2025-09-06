@@ -4,6 +4,7 @@ import {
     // unblockUser,
     deleteUser,
     getAllUsers,
+    getUserById,
     changeUserStatus,
     changeUserPassword,
     changeUserRole
@@ -11,6 +12,7 @@ import {
 export const userRouter = express.Router();
 
 userRouter.get("/", getAllUsers);
+userRouter.get("/:id", getUserById);
 // userRouter.patch("/block/:id", blockUser);  
 // userRouter.patch("/unblock/:id", unblockUser);
 userRouter.delete("/:id", deleteUser);
