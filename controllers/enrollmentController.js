@@ -65,7 +65,14 @@ export const getUserEnrollments = async (req, res) => {
     try {
         const { id } = req.params;
         const enrollments = await Enrollment.find({ user_id: id })
-            .populate('course_id', 'course_title course_description image')
+            .populate({
+              path: 'course_id',
+              select: 'course_title course_description image category',
+              populate: {
+                path: 'category_id',
+                select: 'category_name'
+              }
+            })
             .populate('user_id', 'username email');
         
         const formattedData = enrollments.map(enrollment => ({
