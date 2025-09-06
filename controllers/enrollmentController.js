@@ -1,5 +1,7 @@
 import Enrollment from "../models/enrollmentModel.js";
 import Course from "../models/courseModel.js";
+import User from "../models/userModel.js";
+import { sendEnrollmentNotification } from "../utils/telegramService.js";
 
 export const getAllEnrollments = async (req, res) => {
         try {
@@ -20,8 +22,11 @@ export const enrollUser = async (req, res) => {
       return res.status(404).json({ error: "Course not found" });
     }
     let enrollment = await Enrollment.findOne({ user_id, course_id });
+    let isNewEnrollment = false;
+
     // Set payment_status automatically
     if (!enrollment) {
+      isNewEnrollment = true;
       // Determine payment status
       const payment_status = course.course_price === 0 ? "paid" : "pending";
 
@@ -34,6 +39,17 @@ export const enrollUser = async (req, res) => {
       });
 
       enrollment = await enrollment.save();
+
+      // Send Telegram notification for new enrollments
+      try {
+        const user = await User.findById(user_id);
+        if (user) {
+          await sendEnrollmentNotification(user, course, enrollment);
+        }
+      } catch (telegramError) {
+        console.error('Telegram notification failed:', telegramError);
+        // Don't fail the enrollment if Telegram notification fails
+      }
     }
     res.status(200).json({data: {enrollment, course}, success: true});
   } catch (error) {
@@ -47,20 +63,21 @@ export const enrollUser = async (req, res) => {
 //get all of user course
 export const getUserEnrollments = async (req, res) => {
     try {
-    const enrollments = await Enrollment.find({ user_id: req.params.id })
-      .populate("course_id"); // populate course details directly
+        const { id } = req.params;
+        const enrollments = await Enrollment.find({ user_id: id })
+            .populate('course_id', 'course_title course_description image')
+            .populate('user_id', 'username email');
+        
+        const formattedData = enrollments.map(enrollment => ({
+            ...enrollment.toObject(),
+            course: enrollment.course_id,
+            user: enrollment.user_id
+        }));
 
-    const formattedData = enrollments.map((enrollment) => ({
-      enrollment_id: enrollment._id,
-      payment_status: enrollment.payment_status,
-      enrolled_at: enrollment.enrolled_at,
-      course: enrollment.course_id, // course object
-    }));
-
-    res.json({ success: true, data: formattedData });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+        res.json({ success: true, data: formattedData });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
 };
 
 export const updateProgress = async (req, res) => {
@@ -102,18 +119,43 @@ export const markEnrollPaid = async ( req, res) => {
     enrollment.payment_status = "paid";
     await enrollment.save();
 
+    // Send Telegram notification for payment completion
+    try {
+      const [user, course] = await Promise.all([
+        User.findById(user_id),
+        Course.findById(course_id)
+      ]);
+      
+      if (user && course) {
+        await sendEnrollmentNotification(user, course, enrollment);
+      }
+    } catch (telegramError) {
+      console.error('Telegram notification failed:', telegramError);
+      // Don't fail the payment update if Telegram notification fails
+    }
+
     res.status(200).json({ success: true, enrollment });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 }
+
 //get all of paid enrollments
 export const getPaidEnrollments = async (req, res) => {
     try {
-        const enrollments = await Enrollment.find({ payment_status: "paid" });
-        res.json(enrollments);
+        const enrollments = await Enrollment.find({ payment_status: "paid" })
+            .populate('course_id', 'course_title course_description image')
+            .populate('user_id', 'username email');
+        
+        const formattedData = enrollments.map(enrollment => ({
+            ...enrollment.toObject(),
+            course: enrollment.course_id,
+            user: enrollment.user_id
+        }));
+
+        res.json({ success: true, data: formattedData });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, error: error.message });
     }
 };

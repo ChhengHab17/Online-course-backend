@@ -155,8 +155,49 @@ export const sendVerificationCode = async (req, res) => {
     let info = await tranport.sendMail({
       from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
       to: existingUser.email,
-      subject: "Verification Code",
-      html: "<h1>" + codeValue + "</h1>",
+      subject: "Email Verification Code",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Email Verification</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e9ecef;">
+              <h1 style="color: #333; margin: 0; font-size: 28px;">E-Learning Platform</h1>
+            </div>
+            
+            <div style="padding: 30px 20px; text-align: center;">
+              <h2 style="color: #333; margin-bottom: 20px; font-size: 24px;">Email Verification</h2>
+              <p style="color: #666; font-size: 16px; margin-bottom: 30px;">
+                Thank you for signing up! Please use the verification code below to complete your registration:
+              </p>
+              
+              <div style="background-color: #f8f9fa; border: 2px dashed #007bff; border-radius: 8px; padding: 30px; margin: 30px 0;">
+                <div style="font-size: 36px; font-weight: bold; color: #007bff; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                  ${codeValue}
+                </div>
+              </div>
+              
+              <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                This code will expire in <strong>5 minutes</strong> for security reasons.
+              </p>
+              
+              <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                If you didn't request this verification, please ignore this email.
+              </p>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; border-top: 1px solid #e9ecef; color: #666; font-size: 12px;">
+              <p style="margin: 0;">© 2024 E-Learning Platform. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
     });
 
     if (info.accepted[0] === existingUser.email) {
@@ -325,8 +366,49 @@ export const sendForgotPasswordCode = async (req, res) => {
     let info = await tranport.sendMail({
       from: process.env.NODE_CODE_SENDING_EMAIL_ADDRESS,
       to: existingUser.email,
-      subject: "Forgot Password Code",
-      html: "<h1>" + codeValue + "</h1>",
+      subject: "Password Reset Code",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Password Reset</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 0; background-color: #f4f4f4;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e9ecef;">
+              <h1 style="color: #333; margin: 0; font-size: 28px;">E-Learning Platform</h1>
+            </div>
+            
+            <div style="padding: 30px 20px; text-align: center;">
+              <h2 style="color: #dc3545; margin-bottom: 20px; font-size: 24px;">Password Reset Request</h2>
+              <p style="color: #666; font-size: 16px; margin-bottom: 30px;">
+                We received a request to reset your password. Please use the code below to proceed:
+              </p>
+              
+              <div style="background-color: #fff5f5; border: 2px dashed #dc3545; border-radius: 8px; padding: 30px; margin: 30px 0;">
+                <div style="font-size: 36px; font-weight: bold; color: #dc3545; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                  ${codeValue}
+                </div>
+              </div>
+              
+              <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                This code will expire in <strong>5 minutes</strong> for security reasons.
+              </p>
+              
+              <p style="color: #dc3545; font-size: 14px; margin-top: 20px; font-weight: bold;">
+                If you didn't request a password reset, please ignore this email and your password will remain unchanged.
+              </p>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; border-top: 1px solid #e9ecef; color: #666; font-size: 12px;">
+              <p style="margin: 0;">© 2024 E-Learning Platform. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
     });
 
     if (info.accepted[0] === existingUser.email) {
