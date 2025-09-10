@@ -62,6 +62,83 @@ export const getDashboardStats = async (req, res) => {
       totalEnrollments === 0
         ? 0
         : Math.round((totalCompletedEnrollments / totalEnrollments) * 100);
+
+    // === INCOME ANALYTICS ===
+    // Today's income
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayEnrollments = await Enrollment.find({
+      payment_status: "paid",
+      enrolled_at: { $gte: todayStart, $lte: todayEnd }
+    }).populate('course_id', 'course_price');
+
+    const todayIncome = todayEnrollments.reduce((total, enrollment) => {
+      return total + (enrollment.course_id?.course_price || 0);
+    }, 0);
+
+    // This week's income
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnrollments = await Enrollment.find({
+      payment_status: "paid",
+      enrolled_at: { $gte: weekStart }
+    }).populate('course_id', 'course_price');
+
+    const weekIncome = weekEnrollments.reduce((total, enrollment) => {
+      return total + (enrollment.course_id?.course_price || 0);
+    }, 0);
+
+    // This month's income
+    const monthEnrollments = await Enrollment.find({
+      payment_status: "paid",
+      enrolled_at: { $gte: startOfThisMonth }
+    }).populate('course_id', 'course_price');
+
+    const monthIncome = monthEnrollments.reduce((total, enrollment) => {
+      return total + (enrollment.course_id?.course_price || 0);
+    }, 0);
+
+    // Last month's income for growth calculation
+    const lastMonthEnrollments = await Enrollment.find({
+      payment_status: "paid",
+      enrolled_at: { $gte: startOfLastMonth, $lt: startOfThisMonth }
+    }).populate('course_id', 'course_price');
+
+    const lastMonthIncome = lastMonthEnrollments.reduce((total, enrollment) => {
+      return total + (enrollment.course_id?.course_price || 0);
+    }, 0);
+
+    const incomeGrowth = calcGrowth(monthIncome, lastMonthIncome).toFixed(1);
+
+    // Daily income for last 7 days
+    const dailyIncome = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date();
+      dayStart.setDate(dayStart.getDate() - i);
+      dayStart.setHours(0, 0, 0, 0);
+      
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const dayEnrollments = await Enrollment.find({
+        payment_status: "paid",
+        enrolled_at: { $gte: dayStart, $lte: dayEnd }
+      }).populate('course_id', 'course_price');
+
+      const dayRevenue = dayEnrollments.reduce((total, enrollment) => {
+        return total + (enrollment.course_id?.course_price || 0);
+      }, 0);
+
+      dailyIncome.push({
+        date: dayStart.toISOString().split('T')[0],
+        income: dayRevenue
+      });
+    }
     
     // === Monthly stats for last 6 months ===
     const now = new Date();
@@ -109,6 +186,12 @@ export const getDashboardStats = async (req, res) => {
       activeUsersToday,
       newSignups,
       completionRate,
+      // Income analytics
+      todayIncome,
+      weekIncome,
+      monthIncome,
+      incomeGrowth,
+      dailyIncome,
       monthlyStats,
       courseDistribution,
     });
