@@ -21,46 +21,64 @@ export const enrollUser = async (req, res) => {
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
     }
+    
     let enrollment = await Enrollment.findOne({ user_id, course_id });
     let isNewEnrollment = false;
 
-    // Set payment_status automatically
-    if (!enrollment) {
-      isNewEnrollment = true;
-      // Determine payment status
-      const payment_status = course.course_price === 0 ? "paid" : "pending";
-
-      // Create new enrollment
-      enrollment = new Enrollment({
-        user_id,
-        course_id,
-        progress_status: 0,
-        payment_status,
+    // Check if user already has access (either enrolled or free course)
+    if (enrollment) {
+      // User already enrolled
+      return res.status(200).json({
+        data: { enrollment, course }, 
+        success: true,
+        message: "User already enrolled"
       });
-
-      enrollment = await enrollment.save();
-
-      // Send Telegram notification for new enrollments
-      try {
-        const user = await User.findById(user_id);
-        if (user) {
-          await sendEnrollmentNotification(user, course, enrollment);
-        }
-      } catch (telegramError) {
-        console.error('Telegram notification failed:', telegramError);
-        // Don't fail the enrollment if Telegram notification fails
-      }
     }
-    res.status(200).json({data: {enrollment, course}, success: true});
+
+    // For free courses, grant immediate access without saving enrollment
+    if (course.course_price === 0) {
+      return res.status(200).json({ 
+        code: "free", 
+        success: true,
+        message: "Free course - access granted",
+        data: { course, hasAccess: true }
+      });
+    }
+
+    // For paid courses, create enrollment with pending payment
+    isNewEnrollment = true;
+    enrollment = new Enrollment({
+      user_id,
+      course_id,
+      progress_status: 0,
+      payment_status: "pending",
+    });
+    
+    enrollment = await enrollment.save();
+
+    // Send Telegram notification for new paid course enrollments
+    try {
+      const user = await User.findById(user_id);
+      if (user) {
+        await sendEnrollmentNotification(user, course, enrollment);
+      }
+    } catch (telegramError) {
+      console.error('Telegram notification failed:', telegramError);
+      // Don't fail the enrollment if Telegram notification fails
+    }
+
+    res.status(200).json({
+      data: { enrollment, course }, 
+      success: true,
+      message: "Enrollment created - payment pending"
+    });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ error: "User is already enrolled in this course" });
     }
     res.status(500).json({ error: error.message });
   }
-};
-
-//get all of user course
+};//get all of user course
 export const getUserEnrollments = async (req, res) => {
     try {
         const { id } = req.params;
